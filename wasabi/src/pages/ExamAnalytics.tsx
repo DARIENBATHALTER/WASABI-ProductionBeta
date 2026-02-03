@@ -1094,8 +1094,8 @@ export default function ExamAnalytics() {
         )}
 
 
-        {/* Detailed Standard Analysis Button */}
-        {testAnalytics && !loading && (
+        {/* Detailed Standard Analysis Button - Hide for iReady tests */}
+        {testAnalytics && !loading && selectedTest && !selectedTest.startsWith('IREADY') && (
           <div className="mb-6">
             <button
               onClick={() => setIsDetailModalOpen(true)}

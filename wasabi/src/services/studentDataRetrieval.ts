@@ -1,4 +1,5 @@
 import { db } from '../lib/db';
+import { instructorNameMappingService } from './instructorNameMapping';
 import type { 
   EnhancedStudentProfile, 
   EnhancedAttendanceRecord, 
@@ -151,6 +152,31 @@ export interface StudentDataContext {
     incidentsByMonth: Record<string, number>;
     mostCommonIncidentType: string;
     averageIncidentsPerMonth: number;
+  }>;
+  sobaObservations: Array<{
+    observationId: string;
+    homeroom: string;
+    teacherName: string;
+    observationTimestamp: string;
+    classEngagementScore: number;
+    classEngagementNotes: string;
+    teacherFeedbackNotes: string;
+    teacherScorePlanning: number;
+    teacherScoreDelivery: number;
+    teacherScoreEnvironment: number;
+    teacherScoreFeedback: number;
+    createdBy: string;
+  }>;
+  sobaStudentNotes: Array<{
+    noteId: string;
+    observationId?: string;
+    studentId: string;
+    studentName: string;
+    homeroom: string;
+    noteTimestamp: string;
+    noteText: string;
+    category?: 'engagement' | 'behavior' | 'academic' | 'strategy' | 'other';
+    createdBy: string;
   }>;
   flags: Array<{
     studentId: string;
@@ -404,7 +430,7 @@ export class StudentDataRetrieval {
     
     try {
       // Gather all relevant data in parallel with error handling
-      const [attendanceData, gradeData, assessmentData, disciplineData] = await Promise.all([
+      const [attendanceData, gradeData, assessmentData, disciplineData, sobaObservationsData, sobaStudentNotesData] = await Promise.all([
         this.getAttendanceData(studentIds, students).catch(error => {
           console.error('Error getting attendance data:', error);
           return [];
@@ -420,6 +446,14 @@ export class StudentDataRetrieval {
         this.getDisciplineData(studentIds, students).catch(error => {
           console.error('Error getting discipline data:', error);
           return [];
+        }),
+        this.getSOBAObservationsData(students).catch(error => {
+          console.error('Error getting SOBA observations data:', error);
+          return [];
+        }),
+        this.getSOBAStudentNotesData(studentIds, students).catch(error => {
+          console.error('Error getting SOBA student notes data:', error);
+          return [];
         })
       ]);
       
@@ -432,8 +466,11 @@ export class StudentDataRetrieval {
       // Calculate summary statistics
       const summary = this.calculateSummary(students, attendanceData, gradeData, flagData);
       
+      // Apply instructor name mappings to student data
+      const mappedStudents = await instructorNameMappingService.applyMappingsToStudents(students);
+      
       let result: StudentDataContext = {
-        students: students.map(s => ({
+        students: mappedStudents.map(s => ({
           id: s.id, // WASABI ID for privacy
           name: s.id, // Use WASABI ID instead of actual name
           studentNumber: s.studentNumber || 'N/A',
@@ -449,6 +486,8 @@ export class StudentDataRetrieval {
         assessments: assessmentData,
         discipline: disciplineData,
         flags: flagData,
+        sobaObservations: sobaObservationsData,
+        sobaStudentNotes: sobaStudentNotesData,
         summary
       };
       
@@ -469,6 +508,8 @@ export class StudentDataRetrieval {
         assessments: [],
         discipline: [],
         flags: [],
+        sobaObservations: [],
+        sobaStudentNotes: [],
         summary: {
           totalStudents: 0,
           averageAttendance: 0,
@@ -1786,6 +1827,80 @@ export class StudentDataRetrieval {
       .sort(([,a], [,b]) => b - a)[0][0];
   }
   
+  // Get SOBA observations data
+  private static async getSOBAObservationsData(students: any[]) {
+    try {
+      // Get all SOBA observations from the database
+      const observations = await db.sobaObservations?.toArray() || [];
+      
+      console.log(`📋 Found ${observations.length} SOBA observations`);
+      
+      // Get unique homerooms from students to filter relevant observations
+      const studentHomerooms = [...new Set(students.map(s => s.className).filter(Boolean))];
+      console.log(`🏫 Student homerooms:`, studentHomerooms);
+      
+      // Filter observations for relevant homerooms
+      const relevantObservations = observations.filter(obs => 
+        studentHomerooms.includes(obs.homeroom)
+      );
+      
+      console.log(`📊 Found ${relevantObservations.length} relevant SOBA observations for student homerooms`);
+      
+      // Apply instructor name mappings
+      const mappedObservations = await Promise.all(relevantObservations.map(async obs => ({
+        observationId: obs.observationId,
+        homeroom: obs.homeroom,
+        teacherName: await instructorNameMappingService.getDisplayName(obs.teacherName),
+        observationTimestamp: obs.observationTimestamp.toISOString(),
+        classEngagementScore: obs.classEngagementScore,
+        classEngagementNotes: obs.classEngagementNotes,
+        teacherFeedbackNotes: obs.teacherFeedbackNotes,
+        teacherScorePlanning: obs.teacherScorePlanning,
+        teacherScoreDelivery: obs.teacherScoreDelivery,
+        teacherScoreEnvironment: obs.teacherScoreEnvironment,
+        teacherScoreFeedback: obs.teacherScoreFeedback,
+        createdBy: obs.createdBy
+      })));
+      
+      return mappedObservations;
+    } catch (error) {
+      console.error('Error fetching SOBA observations:', error);
+      return [];
+    }
+  }
+  
+  // Get SOBA student notes data
+  private static async getSOBAStudentNotesData(studentIds: string[], students: any[]) {
+    try {
+      // Get all SOBA student notes from the database
+      const allNotes = await db.sobaStudentNotes?.toArray() || [];
+      
+      console.log(`📝 Found ${allNotes.length} total SOBA student notes in database`);
+      
+      // Filter notes for the specific students we're analyzing
+      const relevantNotes = allNotes.filter(note => 
+        studentIds.includes(note.studentId)
+      );
+      
+      console.log(`🎯 Found ${relevantNotes.length} SOBA student notes for the ${studentIds.length} students being analyzed`);
+      
+      return relevantNotes.map(note => ({
+        noteId: note.noteId,
+        observationId: note.observationId,
+        studentId: note.studentId,
+        studentName: note.studentId, // Use WASABI ID for privacy
+        homeroom: note.homeroom,
+        noteTimestamp: note.noteTimestamp.toISOString(),
+        noteText: note.noteText,
+        category: note.category,
+        createdBy: note.createdBy
+      }));
+    } catch (error) {
+      console.error('Error fetching SOBA student notes:', error);
+      return [];
+    }
+  }
+
   // Generate comprehensive subject analysis
   static buildSubjectAnalysis(context: any, subject: string): string {
     if (!context?.students?.length) return '';
