@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useStore } from './store';
 import { InstructorNameProvider } from './contexts/InstructorNameContext';
+import { AnonymizerProvider } from './contexts/AnonymizerContext';
 import Layout from './shared/components/Layout';
 import ProtectedRoute from './shared/components/ProtectedRoute';
 import LoginPage from './features/auth/LoginPage';
@@ -59,8 +60,9 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <InstructorNameProvider>
-        <Router>
+      <AnonymizerProvider>
+        <InstructorNameProvider>
+          <Router>
         <Routes>
           {/* Public route */}
           <Route path="/login" element={<LoginPage />} />
@@ -165,8 +167,9 @@ function App() {
             </ProtectedRoute>
           } />
         </Routes>
-        </Router>
-      </InstructorNameProvider>
+          </Router>
+        </InstructorNameProvider>
+      </AnonymizerProvider>
     </QueryClientProvider>
   );
 }

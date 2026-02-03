@@ -1,9 +1,13 @@
 import { db } from '../lib/db';
+import { useStore } from '../store';
+import { anonymizeStudent, anonymizeTeacher } from './anonymizerService';
 
 export interface StudentNameMap {
   wasabiId: string;
   name: string;
   studentNumber: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 export class StudentNameTranslationService {
@@ -26,14 +30,18 @@ export class StudentNameTranslationService {
       
       students.forEach(student => {
         const fullName = `${student.firstName} ${student.lastName}`.trim();
-        const firstName = student.firstName?.trim().toLowerCase();
-        const lastName = student.lastName?.trim().toLowerCase();
+        const firstName = student.firstName?.trim();
+        const lastName = student.lastName?.trim();
+        const firstNameLower = firstName?.toLowerCase();
+        const lastNameLower = lastName?.toLowerCase();
         const fullNameLower = fullName.toLowerCase();
-        
+
         const studentMap: StudentNameMap = {
           wasabiId: student.id,
           name: fullName,
-          studentNumber: student.studentNumber || student.id
+          studentNumber: student.studentNumber || student.id,
+          firstName: firstName || '',
+          lastName: lastName || ''
         };
         
         // Store in main map
@@ -44,12 +52,12 @@ export class StudentNameTranslationService {
         this.wasabiToNameMap.set(student.id, fullName);
         
         // Also map by first name + last initial (e.g., "John D")
-        if (firstName && lastName) {
-          const firstNameLastInitial = `${firstName} ${lastName.charAt(0)}`;
+        if (firstNameLower && lastNameLower) {
+          const firstNameLastInitial = `${firstNameLower} ${lastNameLower.charAt(0)}`;
           this.nameToWasabiMap.set(firstNameLastInitial, student.id);
-          
+
           // Map by last name, first name format
-          const lastNameFirstName = `${lastName}, ${firstName}`;
+          const lastNameFirstName = `${lastNameLower}, ${firstNameLower}`;
           this.nameToWasabiMap.set(lastNameFirstName, student.id);
         }
         
@@ -202,10 +210,14 @@ export class StudentNameTranslationService {
   }
   
   // Translate AI response: replace WASABI IDs with student names
+  // When anonymizer is enabled, uses fictional names instead of real ones
   static async translateIdsToNames(response: string): Promise<string> {
     await this.ensureFreshCache();
     console.log('🔍 Translating response:', response);
-    
+
+    // Check anonymizer state from Zustand store
+    const { anonymizerEnabled, anonymizerSeed } = useStore.getState();
+
     let translatedResponse = response;
     
     // Look for WASABI ID patterns in various formats
@@ -241,10 +253,17 @@ export class StudentNameTranslationService {
         } else if (i === 5) { // Pattern 6: Common phrases - extract the WASABI ID
           const wasabiId = match[1];
           console.log('🔍 Found WASABI ID in phrase:', wasabiId);
-          const studentName = await this.getNameByWasabiId(wasabiId);
-          
+          let studentName = await this.getNameByWasabiId(wasabiId);
+
           if (studentName) {
-            console.log('✅ Translating phrase:', match[0], '→', match[0].replace(wasabiId, studentName));
+            // If anonymizer is enabled, get fictional name instead
+            if (anonymizerEnabled) {
+              const anonymized = anonymizeStudent(wasabiId, anonymizerSeed);
+              studentName = `${anonymized.firstName} ${anonymized.lastName}`;
+              console.log('🎭 Anonymizing phrase:', match[0], '→', match[0].replace(wasabiId, studentName));
+            } else {
+              console.log('✅ Translating phrase:', match[0], '→', match[0].replace(wasabiId, studentName));
+            }
             translatedResponse = translatedResponse.replace(match[0], match[0].replace(wasabiId, studentName));
           } else {
             console.log('❌ No student found for WASABI ID in phrase:', wasabiId);
@@ -252,10 +271,17 @@ export class StudentNameTranslationService {
         } else {
           const wasabiId = match[1];
           console.log('🔍 Checking WASABI ID:', wasabiId);
-          const studentName = await this.getNameByWasabiId(wasabiId);
-          
+          let studentName = await this.getNameByWasabiId(wasabiId);
+
           if (studentName) {
-            console.log('✅ Translating:', wasabiId, '→', studentName);
+            // If anonymizer is enabled, get fictional name instead
+            if (anonymizerEnabled) {
+              const anonymized = anonymizeStudent(wasabiId, anonymizerSeed);
+              studentName = `${anonymized.firstName} ${anonymized.lastName}`;
+              console.log('🎭 Anonymizing:', wasabiId, '→', studentName);
+            } else {
+              console.log('✅ Translating:', wasabiId, '→', studentName);
+            }
             // Replace the entire match with just the student name
             translatedResponse = translatedResponse.replace(match[0], studentName);
           } else {

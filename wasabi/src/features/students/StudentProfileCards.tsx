@@ -5,6 +5,7 @@ import StudentAvatar from '../../shared/components/StudentAvatar';
 import InstructorName from '../../shared/components/InstructorName';
 import type { StudentSearchResult } from '../../hooks/useStudentSearch';
 import { useStore } from '../../store';
+import { useAnonymizer } from '../../contexts/AnonymizerContext';
 import { db } from '../../lib/db';
 
 // Data view components
@@ -118,6 +119,7 @@ function CollapsibleSection({ title, isOpen, onToggle, hasFlag, flagMessage, fla
 
 export default function StudentProfileCards({ students, onBack }: StudentProfileCardsProps) {
   const { setSelectedStudents } = useStore();
+  const { isAnonymized, formatStudentName, formatStudentId } = useAnonymizer();
   const [openSections, setOpenSections] = useState<Record<string, Record<string, boolean>>>({});
   
   const removeStudent = (studentId: string) => {
@@ -736,19 +738,19 @@ export default function StudentProfileCards({ students, onBack }: StudentProfile
                   {/* Student Header with Demographics */}
                   <div className="flex items-start gap-4 mb-6">
                     <StudentAvatar
-                      firstName={formatName(student.firstName || '')}
-                      lastName={formatName(student.lastName || '')}
+                      firstName={formatName(isAnonymized ? formatStudentName(student.firstName || '', student.lastName || '', student.id, 'first-only') : student.firstName || '')}
+                      lastName={formatName(isAnonymized ? formatStudentName(student.firstName || '', student.lastName || '', student.id, 'last-only') : student.lastName || '')}
                       gender={student.gender}
                       size="lg"
                     />
                     <div className="flex-1">
                       <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                        {formatName(student.fullName || '')}
+                        {formatName(isAnonymized ? formatStudentName(student.firstName || '', student.lastName || '', student.id, 'last-first') : student.fullName || '')}
                       </h2>
                       <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-2 text-sm">
                         <div>
                           <span className="text-gray-600 dark:text-gray-400">Student ID:</span>
-                          <span className="ml-2 text-gray-900 dark:text-gray-100">{student.studentNumber}</span>
+                          <span className="ml-2 text-gray-900 dark:text-gray-100">{formatStudentId(student.studentNumber || '')}</span>
                         </div>
                         <div>
                           <span className="text-gray-600 dark:text-gray-400">Grade Level:</span>

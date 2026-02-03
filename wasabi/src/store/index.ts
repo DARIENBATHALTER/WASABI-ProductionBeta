@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Student } from '../shared/types';
 import type { StudentSearchResult } from '../hooks/useStudentSearch';
+import { generateSeed } from '../services/anonymizerService';
 
 interface ChatMessage {
   id: string;
@@ -24,29 +25,36 @@ interface AppState {
   // UI State
   theme: 'light' | 'dark';
   sidebarOpen: boolean;
-  
+
   // User State
   currentUser: User | null;
-  
+
+  // Anonymizer State (Demo Mode)
+  anonymizerEnabled: boolean;
+  anonymizerSeed: string;
+
   // Nori State
   noriMinimized: boolean;
   noriMessages: ChatMessage[];
-  
+
   // Student State
   selectedStudent: Student | null;
   selectedStudents: StudentSearchResult[];
   searchQuery: string;
-  
+
   // Profile handlers
   studentSelectHandler: ((student: StudentSearchResult) => void) | null;
   viewProfilesHandler: ((students: StudentSearchResult[]) => void) | null;
-  
+
   // Actions
   setTheme: (theme: 'light' | 'dark') => void;
   toggleSidebar: () => void;
   setCurrentUser: (user: User | null) => void;
   logout: () => void;
   isSessionValid: () => boolean;
+  setAnonymizerEnabled: (enabled: boolean) => void;
+  setAnonymizerSeed: (seed: string) => void;
+  regenerateAnonymizerSeed: () => void;
   setNoriMinimized: (minimized: boolean) => void;
   setNoriMessages: (messages: ChatMessage[]) => void;
   addNoriMessage: (message: ChatMessage) => void;
@@ -66,6 +74,8 @@ export const useStore = create<AppState>()(
       theme: 'light',
       sidebarOpen: true,
       currentUser: null,
+      anonymizerEnabled: false,
+      anonymizerSeed: generateSeed(),
       noriMinimized: true,
       noriMessages: [],
       selectedStudent: null,
@@ -73,7 +83,7 @@ export const useStore = create<AppState>()(
       searchQuery: '',
       studentSelectHandler: null,
       viewProfilesHandler: null,
-      
+
       // Actions
       setTheme: (theme) => {
         set({ theme });
@@ -98,7 +108,14 @@ export const useStore = create<AppState>()(
       },
       
       logout: () => set({ currentUser: null }),
-      
+
+      // Anonymizer actions
+      setAnonymizerEnabled: (enabled) => set({ anonymizerEnabled: enabled }),
+
+      setAnonymizerSeed: (seed) => set({ anonymizerSeed: seed }),
+
+      regenerateAnonymizerSeed: () => set({ anonymizerSeed: generateSeed() }),
+
       isSessionValid: () => {
         const state = useStore.getState();
         if (!state.currentUser?.loginTime) return false;
@@ -140,10 +157,12 @@ export const useStore = create<AppState>()(
     {
       name: 'wasabi-storage',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ 
+      partialize: (state) => ({
         theme: state.theme,
         sidebarOpen: state.sidebarOpen,
-        currentUser: state.currentUser
+        currentUser: state.currentUser,
+        anonymizerEnabled: state.anonymizerEnabled,
+        anonymizerSeed: state.anonymizerSeed
         // noriMinimized not persisted - always starts as true (bubble visible)
       }),
     }

@@ -4,6 +4,7 @@ import { useStudentSearch, type SortField, type SortDirection } from '../../hook
 import StudentAvatar from '../../shared/components/StudentAvatar';
 import InstructorName from '../../shared/components/InstructorName';
 import { useInstructorDisplayNames } from '../../contexts/InstructorNameContext';
+import { useAnonymizer } from '../../contexts/AnonymizerContext';
 import { useStore } from '../../store';
 import { useState, useEffect, useRef } from 'react';
 import type { StudentSearchResult } from '../../hooks/useStudentSearch';
@@ -40,12 +41,13 @@ const formatName = (name: string): string => {
     .join('');
 };
 
-export default function StudentSearchResults({ 
-  searchQuery, 
+export default function StudentSearchResults({
+  searchQuery,
   onStudentSelect,
-  onViewProfiles 
+  onViewProfiles
 }: StudentSearchResultsProps) {
   const { studentSelectHandler, viewProfilesHandler } = useStore();
+  const { isAnonymized, formatStudentName, formatStudentId } = useAnonymizer();
   const [sortField, setSortField] = useState<SortField>('grade');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   
@@ -633,11 +635,11 @@ export default function StudentSearchResults({
                   <button
                     onClick={() => toggleStudentSelection(student.id)}
                     className="hover:opacity-75 transition-opacity cursor-pointer"
-                    title={`Select ${formatName(student.firstName || '')} ${formatName(student.lastName || '')}`}
+                    title={`Select ${formatStudentName(student.firstName || '', student.lastName || '', student.id)}`}
                   >
                     <StudentAvatar
-                      firstName={formatName(student.firstName || '')}
-                      lastName={formatName(student.lastName || '')}
+                      firstName={formatName(isAnonymized ? formatStudentName(student.firstName || '', student.lastName || '', student.id, 'first-only') : student.firstName || '')}
+                      lastName={formatName(isAnonymized ? formatStudentName(student.firstName || '', student.lastName || '', student.id, 'last-only') : student.lastName || '')}
                       gender={student.gender}
                       size="sm"
                     />
@@ -648,11 +650,11 @@ export default function StudentSearchResults({
                     onClick={() => handleStudentSelect?.(student)}
                     className="font-medium text-gray-900 dark:text-gray-100 hover:text-wasabi-green transition-colors text-left"
                   >
-                    {formatName(student.fullName || '')}
+                    {formatName(isAnonymized ? formatStudentName(student.firstName || '', student.lastName || '', student.id, 'last-first') : student.fullName || '')}
                   </button>
                 </td>
                 <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                  {student.studentNumber}
+                  {formatStudentId(student.studentNumber || '')}
                 </td>
                 <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
                   {(() => {
