@@ -27,6 +27,18 @@ export interface Settings {
   value: any;
 }
 
+export interface AuditLog {
+  id?: number;
+  timestamp: Date;
+  userId: string;
+  userName: string;
+  action: 'view' | 'create' | 'update' | 'delete' | 'export' | 'import' | 'login' | 'logout';
+  entityType: 'student' | 'assessment' | 'observation' | 'report' | 'user' | 'settings' | 'data';
+  entityId?: string;
+  details?: string;
+  ipAddress?: string;
+}
+
 class WasabiDatabase extends Dexie {
   // Declare tables
   users!: Table<User>;
@@ -40,6 +52,7 @@ class WasabiDatabase extends Dexie {
   sobaStudentNotes!: Table<SOBAStudentNote>;
   matchingReports!: Table<MatchingReport>;
   settings!: Table<Settings>;
+  auditLogs!: Table<AuditLog>;
 
   constructor() {
     super('wasabi-db');
@@ -151,6 +164,22 @@ class WasabiDatabase extends Dexie {
         createdAt: new Date(),
         isActive: true
       });
+    });
+
+    // Version 9: Add audit logging
+    this.version(9).stores({
+      users: '++id, email, name, role, isActive',
+      students: 'id, studentNumber, flId, firstName, lastName, grade, dateOfBirth',
+      dataSources: 'id, type, uploadDate',
+      attendance: '[studentId+date], studentId, date, matchedBy, matchConfidence',
+      grades: '++id, studentId, course, matchedBy, matchConfidence',
+      discipline: '++id, studentId, incidentDate, infractionCode, matchedBy, matchConfidence',
+      assessments: '++id, studentId, source, testDate, subject, matchedBy, matchConfidence',
+      sobaObservations: 'observationId, homeroom, observationTimestamp',
+      sobaStudentNotes: 'noteId, observationId, studentId, homeroom, noteTimestamp',
+      matchingReports: '++id, datasetType, uploadDate',
+      settings: 'key',
+      auditLogs: '++id, timestamp, userId, action, entityType'
     });
   }
 }

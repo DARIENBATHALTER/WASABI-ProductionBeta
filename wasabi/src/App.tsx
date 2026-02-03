@@ -5,11 +5,13 @@ import { Toaster } from 'react-hot-toast';
 import { useStore } from './store';
 import { InstructorNameProvider } from './contexts/InstructorNameContext';
 import { AnonymizerProvider } from './contexts/AnonymizerContext';
+import ErrorBoundary from './shared/components/ErrorBoundary';
 import Layout from './shared/components/Layout';
 import ProtectedRoute from './shared/components/ProtectedRoute';
 import LoginPage from './features/auth/LoginPage';
 import StudentSearch from './features/students/StudentSearch';
 import AdminDashboard from './features/admin/AdminDashboard';
+import AuditLogPage from './features/admin/AuditLogPage';
 import StudentReportsPage from './features/reports/StudentReportsPage';
 import ClassAnalyticsPage from './features/analytics/ClassAnalyticsPage';
 import GradeLevelAnalyticsPage from './features/analytics/GradeLevelAnalyticsPage';
@@ -87,6 +89,7 @@ function App() {
             }}
           />
           <Router>
+        <ErrorBoundary>
         <Routes>
           {/* Public route */}
           <Route path="/login" element={<LoginPage />} />
@@ -155,6 +158,13 @@ function App() {
               </Layout>
             </ProtectedRoute>
           } />
+          <Route path="/admin/audit" element={
+            <ProtectedRoute>
+              <Layout>
+                <AuditLogPage />
+              </Layout>
+            </ProtectedRoute>
+          } />
           <Route path="/soba" element={
             <ProtectedRoute>
               <Layout>
@@ -191,6 +201,7 @@ function App() {
             </ProtectedRoute>
           } />
         </Routes>
+        </ErrorBoundary>
           </Router>
         </InstructorNameProvider>
       </AnonymizerProvider>
