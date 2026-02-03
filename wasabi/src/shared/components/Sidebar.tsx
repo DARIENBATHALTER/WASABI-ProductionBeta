@@ -1,17 +1,18 @@
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  Users, 
-  FileText, 
-  Flag, 
-  BarChart3, 
-  GraduationCap, 
+import {
+  Users,
+  FileText,
+  Flag,
+  BarChart3,
+  GraduationCap,
   Settings,
   LogOut,
   Bot,
   Loader,
   Sparkles,
   ClipboardList,
-  Eye
+  Eye,
+  Heart
 } from 'lucide-react';
 import { useStore } from '../../store';
 import { SpiralIcon } from './SpiralIcon';
@@ -24,6 +25,7 @@ const mainMenuItems = [
   { path: '/grade-analytics', label: 'Grade Analytics', icon: GraduationCap },
   { path: '/exam-analytics', label: 'Exam Analytics', icon: ClipboardList },
   { path: '/soba', label: 'Observation', icon: Eye },
+  { path: '/interventions', label: 'Interventions', icon: Heart },
   { path: '/ai-assistant', label: 'Nori AI', icon: SpiralIcon },
 ];
 
