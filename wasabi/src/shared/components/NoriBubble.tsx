@@ -148,7 +148,7 @@ export default function NoriBubble() {
   return (
     <>
       {/* Floating Nori Bubble */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-50" data-tour="nori">
         <button
           onClick={() => setShowMiniChat(!showMiniChat)}
           className="rounded-full p-4 transition-all transform hover:scale-110"

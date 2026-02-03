@@ -47,11 +47,12 @@ export default function Sidebar() {
       <Link
         key={item.path}
         to={item.path}
+        data-tour={item.path === '/admin' ? 'admin' : undefined}
         className={`
           flex items-center rounded-lg transition-colors duration-200
           ${sidebarOpen ? 'space-x-3 px-4 py-3' : 'justify-center px-2 py-3'}
-          ${isActive 
-            ? 'bg-wasabi-green text-white' 
+          ${isActive
+            ? 'bg-wasabi-green text-white'
             : 'text-gray-300 hover:bg-gray-800 hover:text-white'
           }
         `}
@@ -86,7 +87,9 @@ export default function Sidebar() {
       )}
       
       {/* Sidebar */}
-      <div className={`
+      <div
+        data-tour="sidebar"
+        className={`
         absolute lg:static inset-y-0 left-0 z-40
         bg-wasabi-dark text-white
         border-r border-gray-700

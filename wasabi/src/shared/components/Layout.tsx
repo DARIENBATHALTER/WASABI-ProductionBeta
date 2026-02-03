@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import ToastContainer from './Toast';
 import NoriBubble from './NoriBubble';
+import OnboardingTour, { useShouldShowTour } from './OnboardingTour';
 import StudentProfileCards from '../../features/students/StudentProfileCards';
 import { useStore } from '../../store';
 import { useGlobalShortcuts } from '../../hooks/useKeyboardNavigation';
@@ -20,6 +21,18 @@ export default function Layout({ children }: LayoutProps) {
 
   // Enable global keyboard shortcuts (Cmd/Ctrl+K for search, / for quick search)
   useGlobalShortcuts();
+
+  // Show onboarding tour for first-time users
+  const shouldShowTour = useShouldShowTour();
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    // Delay showing tour to let the UI settle
+    if (shouldShowTour) {
+      const timer = setTimeout(() => setShowTour(true), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldShowTour]);
   
   const handleViewProfiles = () => {
     if (selectedStudents.length > 0) {
@@ -87,6 +100,9 @@ export default function Layout({ children }: LayoutProps) {
       
       <ToastContainer />
       <NoriBubble />
+
+      {/* Onboarding tour for first-time users */}
+      {showTour && <OnboardingTour onComplete={() => setShowTour(false)} />}
     </div>
   );
 }

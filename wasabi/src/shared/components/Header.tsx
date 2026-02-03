@@ -165,6 +165,7 @@ export default function Header({ onViewProfiles, onToggleSidebar, onBackToSearch
               <input
                 ref={inputRef}
                 type="text"
+                data-tour="search"
                 placeholder={selectedStudents.length > 0 ? "" : "Search by student name..."}
                 value={localSearch}
                 onChange={(e) => {
