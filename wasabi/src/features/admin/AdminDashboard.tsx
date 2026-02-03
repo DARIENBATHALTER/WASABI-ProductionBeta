@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Database, Shield, Users, UserCheck, Theater, RefreshCw } from 'lucide-react';
+import { Database, Shield, Users, UserCheck, Theater, RefreshCw, HardDrive } from 'lucide-react';
 import { SpiralIcon } from '../../shared/components/SpiralIcon';
 import DataManagementPanel from './DataManagementPanel';
 import NoriControlPanel from './NoriControlPanel';
 import UserManagementPage from './UserManagementPage';
 import InstructorNames from './InstructorNames';
+import StorageManagement from './StorageManagement';
 import { useAnonymizer } from '../../contexts/AnonymizerContext';
 
-type AdminView = 'dashboard' | 'data-management' | 'nori-control' | 'user-management' | 'instructor-names';
+type AdminView = 'dashboard' | 'data-management' | 'nori-control' | 'user-management' | 'instructor-names' | 'storage-management';
 
 interface AdminTile {
   id: string;
@@ -54,6 +55,15 @@ const adminTiles: AdminTile[] = [
     icon: Users,
     color: 'blue',
     view: 'user-management',
+    enabled: true
+  },
+  {
+    id: 'storage-management',
+    title: 'Storage & Data',
+    description: 'View storage statistics, configure retention policies, and manage data cleanup',
+    icon: HardDrive,
+    color: 'purple',
+    view: 'storage-management',
     enabled: true
   }
 ];
@@ -123,6 +133,8 @@ export default function AdminDashboard() {
       setCurrentView('nori-control');
     } else if (tile.view === 'user-management') {
       setCurrentView('user-management');
+    } else if (tile.view === 'storage-management') {
+      setCurrentView('storage-management');
     } else {
       // For now, other tiles just show placeholder
       console.log(`Clicked ${tile.title} - not yet implemented`);
@@ -183,6 +195,23 @@ export default function AdminDashboard() {
           </button>
         </div>
         <UserManagementPage />
+      </div>
+    );
+  }
+
+  if (currentView === 'storage-management') {
+    return (
+      <div>
+        <div className="flex items-center gap-4 mb-6">
+          <button
+            onClick={handleBackToDashboard}
+            className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+          >
+            ← Back to Dashboard
+          </button>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Storage & Data Management</h1>
+        </div>
+        <StorageManagement />
       </div>
     );
   }
