@@ -12,7 +12,8 @@ import {
   Sparkles,
   ClipboardList,
   Eye,
-  Heart
+  Heart,
+  MessageSquare
 } from 'lucide-react';
 import { useStore } from '../../store';
 import { SpiralIcon } from './SpiralIcon';
@@ -26,6 +27,7 @@ const mainMenuItems = [
   { path: '/exam-analytics', label: 'Exam Analytics', icon: ClipboardList },
   { path: '/soba', label: 'Observation', icon: Eye },
   { path: '/interventions', label: 'Interventions', icon: Heart },
+  { path: '/communications', label: 'Communications', icon: MessageSquare },
   { path: '/ai-assistant', label: 'Nori AI', icon: SpiralIcon },
 ];
 

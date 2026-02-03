@@ -83,6 +83,24 @@ export interface StudentGoal {
   updatedAt: Date;
 }
 
+export interface CommunicationLog {
+  id?: number;
+  studentId: string;
+  type: 'phone_call' | 'email' | 'in_person' | 'text_message' | 'home_visit' | 'other';
+  contactName: string;
+  contactRelationship: string; // e.g., "Mother", "Father", "Guardian"
+  direction: 'outgoing' | 'incoming';
+  subject: string;
+  summary: string;
+  outcome?: string;
+  followUpRequired: boolean;
+  followUpDate?: Date;
+  staffMember: string;
+  communicationDate: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 class WasabiDatabase extends Dexie {
   // Declare tables
   users!: Table<User>;
@@ -99,6 +117,7 @@ class WasabiDatabase extends Dexie {
   auditLogs!: Table<AuditLog>;
   interventions!: Table<Intervention>;
   studentGoals!: Table<StudentGoal>;
+  communications!: Table<CommunicationLog>;
 
   constructor() {
     super('wasabi-db');
@@ -244,6 +263,25 @@ class WasabiDatabase extends Dexie {
       auditLogs: '++id, timestamp, userId, action, entityType',
       interventions: '++id, studentId, type, status, startDate',
       studentGoals: '++id, studentId, category, status, targetDate'
+    });
+
+    // Version 11: Add communication log
+    this.version(11).stores({
+      users: '++id, email, name, role, isActive',
+      students: 'id, studentNumber, flId, firstName, lastName, grade, dateOfBirth',
+      dataSources: 'id, type, uploadDate',
+      attendance: '[studentId+date], studentId, date, matchedBy, matchConfidence',
+      grades: '++id, studentId, course, matchedBy, matchConfidence',
+      discipline: '++id, studentId, incidentDate, infractionCode, matchedBy, matchConfidence',
+      assessments: '++id, studentId, source, testDate, subject, matchedBy, matchConfidence',
+      sobaObservations: 'observationId, homeroom, observationTimestamp',
+      sobaStudentNotes: 'noteId, observationId, studentId, homeroom, noteTimestamp',
+      matchingReports: '++id, datasetType, uploadDate',
+      settings: 'key',
+      auditLogs: '++id, timestamp, userId, action, entityType',
+      interventions: '++id, studentId, type, status, startDate',
+      studentGoals: '++id, studentId, category, status, targetDate',
+      communications: '++id, studentId, type, communicationDate, followUpRequired'
     });
   }
 }
