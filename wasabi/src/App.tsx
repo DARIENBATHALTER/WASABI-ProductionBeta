@@ -37,15 +37,13 @@ const queryClient = new QueryClient({
 
 function App() {
   const theme = useStore((state) => state.theme);
-  const currentUser = useStore((state) => state.currentUser);
   const logout = useStore((state) => state.logout);
   const setNoriMinimized = useStore((state) => state.setNoriMinimized);
 
-  // Add logout function to global window object for dev testing
+  // Add logout function to global window object for dev testing (silent in production)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && import.meta.env.DEV) {
       (window as any).wasabiLogout = logout;
-      console.log('🔐 Dev tool: Use window.wasabiLogout() to test logout functionality');
     }
   }, [logout]);
 

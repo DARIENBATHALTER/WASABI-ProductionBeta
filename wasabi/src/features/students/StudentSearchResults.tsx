@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { StudentSearchResult } from '../../hooks/useStudentSearch';
 import PageHeader from '../../shared/components/PageHeader';
 import PageWrapper from '../../shared/components/PageWrapper';
+import BulkActionsBar from '../../shared/components/BulkActionsBar';
 import { evaluateFlag } from '../../lib/flag-evaluator';
 
 interface StudentSearchResultsProps {
@@ -722,6 +723,13 @@ export default function StudentSearchResults({
       )}
         </div>
       </div>
+
+      {/* Bulk Actions Bar */}
+      <BulkActionsBar
+        selectedStudents={selectedStudents}
+        onClearSelection={clearSelection}
+        onViewProfiles={handleViewProfiles}
+      />
     </PageWrapper>
   );
 }
