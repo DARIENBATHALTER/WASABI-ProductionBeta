@@ -5,6 +5,7 @@ import { db } from '../../lib/db';
 import { htmlPrintService } from '../../services/htmlPrintService';
 import PageHeader from '../../shared/components/PageHeader';
 import PageWrapper from '../../shared/components/PageWrapper';
+import { useAnonymizer } from '../../contexts/AnonymizerContext';
 
 type ReportType = 'single' | 'homeroom' | 'grade';
 type ReportFormat = 'detailed' | 'parent-friendly';
@@ -73,6 +74,7 @@ export default function StudentReportsPage() {
     type: 'success' | 'error' | null;
     message: string;
   }>({ type: null, message: '' });
+  const { formatStudentName, formatTeacherName, isAnonymized } = useAnonymizer();
 
   // Fetch students for dropdown
   const { data: students = [] } = useQuery({
@@ -81,6 +83,8 @@ export default function StudentReportsPage() {
       const allStudents = await db.students.toArray();
       return allStudents.map(student => ({
         id: student.id,
+        firstName: student.firstName || '',
+        lastName: student.lastName || '',
         name: `${student.lastName}, ${student.firstName}`,
         grade: student.grade,
         homeroom: student.className
@@ -256,7 +260,7 @@ export default function StudentReportsPage() {
                   <option value="">Choose a student...</option>
                   {students.map(student => (
                     <option key={student.id} value={student.id}>
-                      {student.name} - Grade {student.grade}
+                      {formatStudentName(student.firstName, student.lastName, student.id)} - Grade {student.grade}
                     </option>
                   ))}
                 </select>
@@ -273,7 +277,7 @@ export default function StudentReportsPage() {
                   <option value="">Choose a homeroom teacher...</option>
                   {homerooms.map(homeroom => (
                     <option key={homeroom} value={homeroom}>
-                      {homeroom}
+                      {formatTeacherName(homeroom)}
                     </option>
                   ))}
                 </select>

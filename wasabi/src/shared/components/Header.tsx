@@ -3,6 +3,7 @@ import { useStore } from '../../store';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StudentAvatar from './StudentAvatar';
+import { useAnonymizer } from '../../contexts/AnonymizerContext';
 
 interface HeaderProps {
   onViewProfiles?: () => void;
@@ -35,6 +36,7 @@ const formatName = (name: string): string => {
 
 export default function Header({ onViewProfiles, onToggleSidebar, onBackToSearch }: HeaderProps = {}) {
   const { theme, setTheme, searchQuery, setSearchQuery, selectedStudents, setSelectedStudents } = useStore();
+  const { formatStudentName, isAnonymized } = useAnonymizer();
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const [savedSearchText, setSavedSearchText] = useState(''); // Store search text when students are selected
   const navigate = useNavigate();
@@ -131,28 +133,32 @@ export default function Header({ onViewProfiles, onToggleSidebar, onBackToSearch
               {/* Selected students avatars inside search bar */}
               {selectedStudents.length > 0 && (
                 <div className="absolute left-10 top-1/2 transform -translate-y-1/2 flex gap-1 z-10">
-                  {selectedStudents.map((student) => (
+                  {selectedStudents.map((student) => {
+                    const displayName = formatStudentName(student.firstName || '', student.lastName || '', student.id);
+                    const [displayFirst, ...displayLastParts] = displayName.split(' ');
+                    const displayLast = displayLastParts.join(' ');
+                    return (
                     <div
                       key={student.id}
                       className="relative group cursor-pointer"
                       onClick={() => removeSelectedStudent(student.id)}
-                      title={`Remove ${formatName(student.firstName || '')} ${formatName(student.lastName || '')}`}
+                      title={`Remove ${displayName}`}
                     >
                       <StudentAvatar
-                        firstName={formatName(student.firstName || '')}
-                        lastName={formatName(student.lastName || '')}
+                        firstName={formatName(displayFirst || '')}
+                        lastName={formatName(displayLast || '')}
                         gender={student.gender}
                         size="xs"
                         className="transition-opacity group-hover:opacity-75"
                       />
                       {/* Visual indicator on hover - solid red overlay */}
-                      <div className="absolute inset-0 bg-red-500 rounded-full 
+                      <div className="absolute inset-0 bg-red-500 rounded-full
                                     opacity-0 group-hover:opacity-100 transition-opacity
                                     flex items-center justify-center">
                         <span className="text-white text-xs font-bold">×</span>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
               

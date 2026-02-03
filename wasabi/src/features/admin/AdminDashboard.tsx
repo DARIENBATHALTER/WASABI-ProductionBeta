@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Database, Shield, Users, UserCheck } from 'lucide-react';
+import { Database, Shield, Users, UserCheck, Theater, RefreshCw } from 'lucide-react';
 import { SpiralIcon } from '../../shared/components/SpiralIcon';
 import DataManagementPanel from './DataManagementPanel';
 import NoriControlPanel from './NoriControlPanel';
 import UserManagementPage from './UserManagementPage';
 import InstructorNames from './InstructorNames';
+import { useAnonymizer } from '../../contexts/AnonymizerContext';
 
 type AdminView = 'dashboard' | 'data-management' | 'nori-control' | 'user-management' | 'instructor-names';
 
@@ -107,6 +108,7 @@ const getColorClasses = (color: string, enabled: boolean) => {
 
 export default function AdminDashboard() {
   const [currentView, setCurrentView] = useState<AdminView>('dashboard');
+  const { isAnonymized, setAnonymized, regenerateSeed, seed } = useAnonymizer();
 
   const handleTileClick = (tile: AdminTile) => {
     if (!tile.enabled) {
@@ -198,6 +200,74 @@ export default function AdminDashboard() {
         <p className="mt-2 text-gray-600 dark:text-gray-400">
           Manage system data, generate reports, and configure application settings
         </p>
+      </div>
+
+      {/* Demo Mode Toggle */}
+      <div className={`mb-8 max-w-4xl rounded-xl border-2 p-6 transition-all ${
+        isAnonymized
+          ? 'bg-purple-50 dark:bg-purple-950 border-purple-300 dark:border-purple-700'
+          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+      }`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-lg ${
+              isAnonymized
+                ? 'bg-purple-200 dark:bg-purple-800'
+                : 'bg-gray-100 dark:bg-gray-700'
+            }`}>
+              <Theater className={`w-6 h-6 ${
+                isAnonymized
+                  ? 'text-purple-600 dark:text-purple-400'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`} />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                Demo Mode
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {isAnonymized
+                  ? 'All student and teacher names are anonymized for safe demonstrations'
+                  : 'Toggle to replace real names with fictional data for demonstrations'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {isAnonymized && (
+              <button
+                onClick={regenerateSeed}
+                className="flex items-center gap-2 px-3 py-2 bg-purple-200 dark:bg-purple-800 hover:bg-purple-300 dark:hover:bg-purple-700 text-purple-700 dark:text-purple-200 rounded-lg transition-colors text-sm"
+                title="Generate new fictional names"
+              >
+                <RefreshCw className="w-4 h-4" />
+                New Names
+              </button>
+            )}
+
+            <button
+              onClick={() => setAnonymized(!isAnonymized)}
+              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                isAnonymized ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform ${
+                  isAnonymized ? 'translate-x-7' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+
+        {isAnonymized && (
+          <div className="mt-4 pt-4 border-t border-purple-200 dark:border-purple-700">
+            <p className="text-xs text-purple-700 dark:text-purple-300">
+              <span className="font-medium">Active</span> — Student names, IDs, and teacher names are replaced with consistent fictional identities.
+              Seed: <code className="bg-purple-100 dark:bg-purple-800 px-1 rounded">{seed.slice(0, 8)}</code>
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Tiles Grid */}

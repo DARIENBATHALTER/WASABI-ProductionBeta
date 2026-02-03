@@ -22,6 +22,7 @@ import { getAttendanceColor, getGPAColor, getIReadyColor, getFASTColor, getAtten
 import type { Student, AssessmentRecord, AttendanceRecord, GradeRecord, DisciplineRecord } from '../../shared/types';
 import PageHeader from '../../shared/components/PageHeader';
 import PageWrapper from '../../shared/components/PageWrapper';
+import { useAnonymizer } from '../../contexts/AnonymizerContext';
 
 interface StudentMetrics {
   student: Student;
@@ -53,6 +54,7 @@ export default function ClassAnalyticsPage() {
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const { formatStudentName, formatTeacherName, isAnonymized } = useAnonymizer();
 
   // Get list of available classes/teachers
   const { data: availableClasses } = useQuery({
@@ -322,7 +324,7 @@ export default function ClassAnalyticsPage() {
             <option value="">Choose a class...</option>
             {availableClasses?.map((className) => (
               <option key={className} value={className}>
-                {className}
+                {formatTeacherName(className)}
               </option>
             ))}
           </select>
@@ -517,7 +519,7 @@ Overall Trend
                     <tr key={studentData.student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-3 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {studentData.student.firstName} {studentData.student.lastName}
+                          {formatStudentName(studentData.student.firstName || '', studentData.student.lastName || '', studentData.student.id)}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
                           Grade {studentData.student.grade}

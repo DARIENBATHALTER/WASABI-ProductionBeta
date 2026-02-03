@@ -4,6 +4,7 @@ import PageHeader from '../shared/components/PageHeader';
 import PageWrapper from '../shared/components/PageWrapper';
 import { examAnalyticsService } from '../services/examAnalyticsService';
 import type { TestType, StandardPerformance, TestAnalytics, TimeSeriesData } from '../shared/types/examAnalytics';
+import { useAnonymizer } from '../contexts/AnonymizerContext';
 
 interface TestOption {
   value: TestType;
@@ -64,6 +65,7 @@ export default function ExamAnalytics() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [schoolwideAnalytics, setSchoolwideAnalytics] = useState<any>(null);
   const [loadingSchoolwide, setLoadingSchoolwide] = useState(false);
+  const { formatTeacherName, formatStudentName, isAnonymized } = useAnonymizer();
 
 
   const selectedTestOption = testOptions.find(option => option.value === selectedTest);
@@ -913,7 +915,7 @@ export default function ExamAnalytics() {
                   .map((homeroom: any) => (
                   <tr key={homeroom.homeroom}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {homeroom.homeroom}
+                      {formatTeacherName(homeroom.homeroom)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900 dark:text-gray-100">
                       {homeroom.studentCount}
@@ -991,9 +993,9 @@ export default function ExamAnalytics() {
               <div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Top Performing Homeroom</div>
                 <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                  {schoolwideAnalytics.homeroomAnalytics.length > 0 
-                    ? schoolwideAnalytics.homeroomAnalytics.reduce((max: any, homeroom: any) => 
-                        homeroom.averagePercentile > max.averagePercentile ? homeroom : max).homeroom
+                  {schoolwideAnalytics.homeroomAnalytics.length > 0
+                    ? formatTeacherName(schoolwideAnalytics.homeroomAnalytics.reduce((max: any, homeroom: any) =>
+                        homeroom.averagePercentile > max.averagePercentile ? homeroom : max).homeroom)
                     : 'N/A'
                   }
                 </div>
@@ -1275,7 +1277,7 @@ export default function ExamAnalytics() {
                             .map((student, studentIndex) => (
                             <tr key={`${standard.standardCode}-${student.studentId}-${studentIndex}`} className={student.percentage < 60 ? 'bg-red-50 dark:bg-red-900/20' : ''}>
                               <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">
-                                {student.studentName}
+                                {isAnonymized ? formatStudentName('', '', student.studentId) : student.studentName}
                                 {student.percentage < 60 && (
                                   <span className="ml-2 text-xs text-red-600 dark:text-red-400">⚠️</span>
                                 )}
@@ -1543,7 +1545,7 @@ export default function ExamAnalytics() {
                                   <div className="flex items-center">
                                     <div>
                                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {student.studentName}
+                                        {isAnonymized ? formatStudentName('', '', student.studentId) : student.studentName}
                                       </div>
                                       <div className="text-sm text-gray-500 dark:text-gray-400">
                                         ID: {student.studentId.slice(-6)}
@@ -1585,7 +1587,7 @@ export default function ExamAnalytics() {
                             {selectedStandardData.studentScores
                               .filter(s => s.percentage < 100)
                               .sort((a, b) => a.percentage - b.percentage)
-                              .map(s => s.studentName)
+                              .map(s => isAnonymized ? formatStudentName('', '', s.studentId) : s.studentName)
                               .join(', ')}
                           </div>
                         </div>

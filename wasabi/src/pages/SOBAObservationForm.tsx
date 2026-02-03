@@ -6,6 +6,7 @@ import { db } from '../lib/db';
 import PageWrapper from '../shared/components/PageWrapper';
 import PageHeader from '../shared/components/PageHeader';
 import SOBAIcon from '../shared/components/SOBAIcon';
+import { useAnonymizer } from '../contexts/AnonymizerContext';
 
 interface ScoreButtonGroupProps {
   value: number | null;
@@ -193,7 +194,8 @@ export default function SOBAObservationForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = Boolean(id);
-  
+  const { formatTeacherName } = useAnonymizer();
+
   const [homerooms, setHomerooms] = useState<string[]>([]);
   const [instructors, setInstructors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -402,7 +404,7 @@ export default function SOBAObservationForm() {
     <PageWrapper>
       <PageHeader
         title={isEdit ? 'Edit Observation' : 'New Observation'}
-        description={formData.homeroom || 'Select a homeroom to begin'}
+        description={formData.homeroom ? formatTeacherName(formData.homeroom) : 'Select a homeroom to begin'}
         icon={SOBAIcon}
         iconColor="text-blue-600"
       >
@@ -469,7 +471,7 @@ export default function SOBAObservationForm() {
               >
                 <option value="">Select homeroom...</option>
                 {homerooms.map(homeroom => (
-                  <option key={homeroom} value={homeroom}>{homeroom}</option>
+                  <option key={homeroom} value={homeroom}>{formatTeacherName(homeroom)}</option>
                 ))}
               </select>
             </div>

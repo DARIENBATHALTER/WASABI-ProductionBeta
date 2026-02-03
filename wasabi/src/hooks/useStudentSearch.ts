@@ -2,9 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '../lib/db';
 import { useStore } from '../store';
+import { anonymizeStudent, anonymizeTeacher } from '../services/anonymizerService';
 
 export interface StudentSearchResult {
   id: number;
+  wasabiId: string; // Original wasabi ID for anonymization
   studentNumber: string;
   firstName: string;
   lastName: string;
@@ -18,12 +20,12 @@ export type SortField = 'name' | 'grade' | 'homeroom';
 export type SortDirection = 'asc' | 'desc';
 
 export function useStudentSearch(
-  searchQuery: string, 
+  searchQuery: string,
   pageSize: number = 50,
   sortField: SortField = 'name',
   sortDirection: SortDirection = 'asc'
 ) {
-  const { selectedStudents, setSelectedStudents } = useStore();
+  const { selectedStudents, setSelectedStudents, anonymizerEnabled, anonymizerSeed } = useStore();
   const [currentPage, setCurrentPage] = useState(0);
   
   // Create a Set of selected student IDs for efficient lookup
@@ -50,6 +52,7 @@ export function useStudentSearch(
         
         return {
           id: numericId,
+          wasabiId: student.id, // Preserve original ID for anonymization
           studentNumber: student.studentNumber,
           firstName: student.firstName,
           lastName: student.lastName,
@@ -125,22 +128,39 @@ export function useStudentSearch(
       // Normal search
       const queryLower = query.toLowerCase();
       const words = queryLower.split(/\s+/);
-      
+
       const matchingStudents = allStudents.filter(student => {
-        // Search in multiple fields
+        // Build searchable text - use anonymized names if anonymizer is enabled
+        let searchFirstName = student.firstName;
+        let searchLastName = student.lastName;
+        let searchFullName = student.fullName;
+        let searchClassName = student.className || '';
+
+        if (anonymizerEnabled) {
+          // Use the preserved wasabiId for anonymization
+          const anonymized = anonymizeStudent(student.wasabiId, anonymizerSeed);
+          searchFirstName = anonymized.firstName;
+          searchLastName = anonymized.lastName;
+          searchFullName = `${anonymized.lastName}, ${anonymized.firstName}`;
+
+          if (searchClassName) {
+            searchClassName = anonymizeTeacher(searchClassName, anonymizerSeed);
+          }
+        }
+
         const searchableText = [
-          student.firstName,
-          student.lastName,
-          student.fullName,
+          searchFirstName,
+          searchLastName,
+          searchFullName,
           student.studentNumber,
           student.grade,
-          student.className || '',
+          searchClassName,
         ].join(' ').toLowerCase();
 
         // All search words must match
         return words.every(word => searchableText.includes(word));
       });
-      
+
       filtered = applySorting(matchingStudents);
     }
 
@@ -154,7 +174,7 @@ export function useStudentSearch(
       searchResults: paginatedResults,
       hasMore
     };
-  }, [allStudents, searchQuery, currentPage, pageSize, sortField, sortDirection]);
+  }, [allStudents, searchQuery, currentPage, pageSize, sortField, sortDirection, anonymizerEnabled, anonymizerSeed]);
 
   // Reset pagination when search query or sorting changes
   useEffect(() => {

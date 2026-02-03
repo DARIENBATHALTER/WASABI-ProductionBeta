@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  Plus, 
-  Trash2, 
-  Users, 
-  AlertTriangle, 
+import {
+  Plus,
+  Trash2,
+  Users,
+  AlertTriangle,
   Filter,
   Search,
   Flag,
@@ -24,10 +24,13 @@ import { evaluateFlag } from '../../lib/flag-evaluator';
 import type { FlagRule } from '../../lib/flag-evaluator';
 import PageHeader from '../../shared/components/PageHeader';
 import PageWrapper from '../../shared/components/PageWrapper';
+import { useAnonymizer } from '../../contexts/AnonymizerContext';
 
 interface FlaggedStudent {
   studentId: string;
   studentName: string;
+  firstName: string;
+  lastName: string;
   grade: string;
   className: string;
   flags: Array<{
@@ -46,6 +49,7 @@ export default function FlaggingSystemPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const { formatStudentName, isAnonymized } = useAnonymizer();
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -131,6 +135,8 @@ export default function FlaggingSystemPage() {
           flaggedResults.push({
             studentId: student.id,
             studentName: `${student.firstName} ${student.lastName}`,
+            firstName: student.firstName || '',
+            lastName: student.lastName || '',
             grade: student.grade,
             className: student.className || 'Not assigned',
             flags: studentFlags
@@ -429,7 +435,7 @@ export default function FlaggingSystemPage() {
                     <tr key={student.studentId} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {student.studentName}
+                          {formatStudentName(student.firstName, student.lastName, student.studentId)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">

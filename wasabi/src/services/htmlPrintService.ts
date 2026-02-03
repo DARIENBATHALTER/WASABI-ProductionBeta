@@ -1,7 +1,40 @@
 import { db } from '../lib/db';
+import { useStore } from '../store';
+import { anonymizeStudent, anonymizeTeacher } from './anonymizerService';
 
 class HTMLPrintService {
   constructor() {}
+
+  // Helper to get anonymized student name if enabled
+  private getDisplayName(student: any): { firstName: string; lastName: string; fullName: string } {
+    const { anonymizerEnabled, anonymizerSeed } = useStore.getState();
+
+    if (anonymizerEnabled && student?.id) {
+      const anonymized = anonymizeStudent(student.id, anonymizerSeed);
+      return {
+        firstName: anonymized.firstName,
+        lastName: anonymized.lastName,
+        fullName: `${anonymized.firstName} ${anonymized.lastName}`
+      };
+    }
+
+    return {
+      firstName: student?.firstName || '',
+      lastName: student?.lastName || '',
+      fullName: `${student?.firstName || ''} ${student?.lastName || ''}`
+    };
+  }
+
+  // Helper to get anonymized teacher name if enabled
+  private getDisplayTeacher(teacherName: string): string {
+    const { anonymizerEnabled, anonymizerSeed } = useStore.getState();
+
+    if (anonymizerEnabled && teacherName) {
+      return anonymizeTeacher(teacherName, anonymizerSeed);
+    }
+
+    return teacherName || '';
+  }
 
   private async fetchStudentData(studentId: string | number) {
     // Validate student ID
@@ -47,10 +80,14 @@ class HTMLPrintService {
 
   private generateStudentHTML(data: any, reportFormat: 'detailed' | 'parent-friendly' = 'detailed'): string {
     const { student, attendance, grades, discipline, assessments } = data;
-    
+
     if (!student) {
       return '<div class="error">Student not found</div>';
     }
+
+    // Get display names (anonymized if enabled)
+    const displayName = this.getDisplayName(student);
+    const displayTeacher = this.getDisplayTeacher(student.className);
 
     // Calculate comprehensive stats
     const attendanceStats = this.calculateAttendanceStats(attendance);
@@ -65,14 +102,14 @@ class HTMLPrintService {
         <!-- Student Header -->
         <div class="student-header">
           <div class="student-avatar">
-            <div class="avatar-circle">${student.firstName.charAt(0)}${student.lastName.charAt(0)}</div>
+            <div class="avatar-circle">${displayName.firstName.charAt(0)}${displayName.lastName.charAt(0)}</div>
           </div>
           <div class="student-info">
-            <h2>${student.firstName} ${student.lastName}</h2>
+            <h2>${displayName.fullName}</h2>
             <div class="student-details">
               <div><strong>Student ID:</strong> ${student.studentNumber}</div>
               <div><strong>Grade Level:</strong> Grade ${student.grade}</div>
-              <div><strong>HR Teacher:</strong> ${student.className || 'Not assigned'}</div>
+              <div><strong>HR Teacher:</strong> ${displayTeacher || 'Not assigned'}</div>
               <div><strong>Gender:</strong> ${student.gender || 'Not specified'}</div>
             </div>
           </div>
@@ -729,9 +766,12 @@ class HTMLPrintService {
   async openPrintWindow(studentId: string | number, reportFormat: 'detailed' | 'parent-friendly' = 'detailed'): Promise<void> {
     // First, fetch all the data we need
     const studentData = await this.fetchStudentData(studentId);
-    
+
+    // Get display name (anonymized if enabled)
+    const displayName = this.getDisplayName(studentData.student);
+
     const printWindow = window.open('', '_blank', 'width=816,height=1056,scrollbars=yes');
-    
+
     if (!printWindow) {
       throw new Error('Failed to open print window. Please check popup blocker settings.');
     }
@@ -745,7 +785,7 @@ class HTMLPrintService {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Student Report - ${studentData.student?.firstName} ${studentData.student?.lastName}</title>
+        <title>Student Report - ${displayName.fullName}</title>
         <style>
           * {
             margin: 0;
@@ -1446,14 +1486,14 @@ class HTMLPrintService {
       </head>
       <body>
         <div class="print-header">
-          <h1>Student Report - ${studentData.student?.firstName} ${studentData.student?.lastName}</h1>
+          <h1>Student Report - ${displayName.fullName}</h1>
           <button class="print-button" onclick="window.print()">Print Report</button>
         </div>
         ${studentHTML}
       </body>
       </html>
     `);
-    
+
     printWindow.document.close();
     printWindow.focus();
   }

@@ -5,12 +5,14 @@ import { sobaService, type SOBAObservation } from '../services/sobaService';
 import PageHeader from '../shared/components/PageHeader';
 import PageWrapper from '../shared/components/PageWrapper';
 import SOBAIcon from '../shared/components/SOBAIcon';
+import { useAnonymizer } from '../contexts/AnonymizerContext';
 
 export default function SOBAObservations() {
   const [observations, setObservations] = useState<SOBAObservation[]>([]);
   const [homerooms, setHomerooms] = useState<string[]>([]);
   const [selectedHomeroom, setSelectedHomeroom] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const { formatTeacherName } = useAnonymizer();
 
   useEffect(() => {
     loadData();
@@ -114,7 +116,7 @@ export default function SOBAObservations() {
               >
                 <option value="all">All Homerooms</option>
                 {homerooms.map(homeroom => (
-                  <option key={homeroom} value={homeroom}>{homeroom}</option>
+                  <option key={homeroom} value={homeroom}>{formatTeacherName(homeroom)}</option>
                 ))}
               </select>
             </div>
@@ -155,7 +157,7 @@ export default function SOBAObservations() {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
                       <Users size={20} className="text-gray-500 dark:text-gray-400" />
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{observation.homeroom}</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{formatTeacherName(observation.homeroom)}</span>
                     </div>
                     <div className={`px-2 py-1 rounded-full text-xs font-medium ${getEngagementColor(observation.classEngagementScore)}`}>
                       {observation.classEngagementScore}/5
@@ -170,7 +172,7 @@ export default function SOBAObservations() {
                     
                     <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
                       <FileText size={16} />
-                      <span>Teacher: {observation.teacherName}</span>
+                      <span>Teacher: {formatTeacherName(observation.teacherName)}</span>
                     </div>
 
                     {observation.classEngagementNotes && (

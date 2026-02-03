@@ -5,6 +5,7 @@ import { sobaService, type SOBAObservation } from '../services/sobaService';
 import PageWrapper from '../shared/components/PageWrapper';
 import PageHeader from '../shared/components/PageHeader';
 import SOBAIcon from '../shared/components/SOBAIcon';
+import { useAnonymizer } from '../contexts/AnonymizerContext';
 
 interface ObservationTrend {
   date: string;
@@ -24,6 +25,7 @@ export default function SOBAAnalytics() {
   const [observations, setObservations] = useState<SOBAObservation[]>([]);
   const [trendData, setTrendData] = useState<ObservationTrend[]>([]);
   const [loading, setLoading] = useState(true);
+  const { formatTeacherName, isAnonymized } = useAnonymizer();
 
   useEffect(() => {
     loadFilters();
@@ -245,6 +247,7 @@ export default function SOBAAnalytics() {
   };
 
   const currentFilter = filterType === 'instructor' ? selectedInstructor : selectedHomeroom;
+  const displayFilter = formatTeacherName(currentFilter);
   // For transposed table: show oldest -> newest left to right
   const observationsChronological = [...observations].reverse();
 
@@ -292,7 +295,7 @@ export default function SOBAAnalytics() {
                 >
                   <option value="">Select an instructor...</option>
                   {instructors.map(instructor => (
-                    <option key={instructor} value={instructor}>{instructor}</option>
+                    <option key={instructor} value={instructor}>{formatTeacherName(instructor)}</option>
                   ))}
                 </select>
               </div>
@@ -308,7 +311,7 @@ export default function SOBAAnalytics() {
                 >
                   <option value="">Select a homeroom...</option>
                   {homerooms.map(homeroom => (
-                    <option key={homeroom} value={homeroom}>{homeroom}</option>
+                    <option key={homeroom} value={homeroom}>{formatTeacherName(homeroom)}</option>
                   ))}
                 </select>
               </div>
@@ -353,7 +356,7 @@ export default function SOBAAnalytics() {
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Historical Observations - {currentFilter}
+                  Historical Observations - {displayFilter}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Columns are observation dates; rows are metric scores.</p>
               </div>

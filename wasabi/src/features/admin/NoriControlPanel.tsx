@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Bot, Database, Users, FileText, BarChart3, AlertTriangle, CheckCircle, Sparkles, Eye, EyeOff, RefreshCw, Theater } from 'lucide-react';
+import { Bot, Database, Users, FileText, BarChart3, AlertTriangle, CheckCircle, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '../../lib/db';
 import { StudentDataRetrieval, type StudentDataContext } from '../../services/studentDataRetrieval';
-import { useAnonymizer } from '../../contexts/AnonymizerContext';
 
 interface DatasetStats {
   name: string;
@@ -19,9 +18,6 @@ export default function NoriControlPanel() {
   const [sampleResults, setSampleResults] = useState<StudentDataContext | null>(null);
   const [isLoadingSample, setIsLoadingSample] = useState(false);
   const [showSensitiveData, setShowSensitiveData] = useState(false);
-
-  // Anonymizer / Demo Mode
-  const { isAnonymized, setAnonymized, regenerateSeed, seed } = useAnonymizer();
 
   // Fetch comprehensive database statistics
   const { data: dbStats, isLoading } = useQuery({
@@ -356,85 +352,6 @@ export default function NoriControlPanel() {
 
       {selectedTab === 'privacy' && (
         <div className="space-y-6">
-          {/* Demo Mode / Anonymizer Section */}
-          <div className={`border rounded-lg p-6 ${
-            isAnonymized
-              ? 'bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800'
-              : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-          }`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                  isAnonymized
-                    ? 'bg-purple-200 dark:bg-purple-800'
-                    : 'bg-gray-100 dark:bg-gray-700'
-                }`}>
-                  <Theater className={`w-5 h-5 ${
-                    isAnonymized
-                      ? 'text-purple-600 dark:text-purple-400'
-                      : 'text-gray-500 dark:text-gray-400'
-                  }`} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    Demo Mode (Anonymizer)
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Replace real names with fictional data for demonstrations
-                  </p>
-                </div>
-              </div>
-
-              {/* Toggle Switch */}
-              <button
-                onClick={() => setAnonymized(!isAnonymized)}
-                className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                  isAnonymized ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'
-                }`}
-              >
-                <span
-                  className={`inline-block h-6 w-6 transform rounded-full bg-white shadow-md transition-transform ${
-                    isAnonymized ? 'translate-x-7' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {isAnonymized && (
-              <div className="mt-4 pt-4 border-t border-purple-200 dark:border-purple-700">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="text-sm font-medium text-purple-900 dark:text-purple-100">
-                      Current Seed: <code className="bg-purple-100 dark:bg-purple-800 px-2 py-0.5 rounded">{seed.slice(0, 8)}...</code>
-                    </p>
-                    <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">
-                      The seed determines which fictional names are generated. Changing it will generate new names.
-                    </p>
-                  </div>
-                  <button
-                    onClick={regenerateSeed}
-                    className="flex items-center gap-2 px-3 py-2 bg-purple-200 dark:bg-purple-800 hover:bg-purple-300 dark:hover:bg-purple-700 text-purple-700 dark:text-purple-200 rounded-lg transition-colors text-sm"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Regenerate Names
-                  </button>
-                </div>
-
-                <div className="bg-purple-100 dark:bg-purple-900 rounded-lg p-4 mt-4">
-                  <p className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-2">
-                    What gets anonymized:
-                  </p>
-                  <ul className="text-xs text-purple-700 dark:text-purple-300 space-y-1">
-                    <li>• Student first and last names</li>
-                    <li>• Student IDs (DCPS ID, FL ID)</li>
-                    <li>• Teacher/Instructor names</li>
-                    <li>• Nori AI responses will also show fictional names</li>
-                  </ul>
-                </div>
-              </div>
-            )}
-          </div>
-
           <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-6">
             <div className="flex items-center gap-3 mb-3">
               <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />

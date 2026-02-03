@@ -5,6 +5,7 @@ import { sobaService, type SOBAObservation, type SOBAStudentNote } from '../serv
 import PageWrapper from '../shared/components/PageWrapper';
 import PageHeader from '../shared/components/PageHeader';
 import SOBAIcon from '../shared/components/SOBAIcon';
+import { useAnonymizer } from '../contexts/AnonymizerContext';
 
 interface ScoreDisplayProps {
   label: string;
@@ -45,6 +46,7 @@ function ScoreDisplay({ label, score, description }: ScoreDisplayProps) {
 export default function SOBAObservationDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { formatTeacherName } = useAnonymizer();
   const [observation, setObservation] = useState<SOBAObservation | null>(null);
   const [studentNotes, setStudentNotes] = useState<SOBAStudentNote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,8 +138,8 @@ export default function SOBAObservationDetail() {
   return (
     <PageWrapper>
       <PageHeader
-        title={`${observation.homeroom} Observation`}
-        description={`${observation.teacherName} • ${formatDate(observation.observationTimestamp)}`}
+        title={`${formatTeacherName(observation.homeroom)} Observation`}
+        description={`${formatTeacherName(observation.teacherName)} • ${formatDate(observation.observationTimestamp)}`}
         icon={SOBAIcon}
         iconColor="text-blue-600"
       >
@@ -166,14 +168,14 @@ export default function SOBAObservationDetail() {
               <Users className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Homeroom</p>
-                <p className="font-medium text-gray-900 dark:text-gray-100">{observation.homeroom}</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">{formatTeacherName(observation.homeroom)}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <FileText className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Teacher</p>
-                <p className="font-medium text-gray-900 dark:text-gray-100">{observation.teacherName}</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">{formatTeacherName(observation.teacherName)}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">

@@ -14,20 +14,27 @@ export class StudentNameTranslationService {
   private static studentNameMap: Map<string, StudentNameMap> = new Map();
   private static nameToWasabiMap: Map<string, string> = new Map();
   private static wasabiToNameMap: Map<string, string> = new Map();
+  // Anonymized name mappings (only populated when anonymizer is enabled)
+  private static anonymizedNameToWasabiMap: Map<string, string> = new Map();
   private static lastCacheUpdate: Date | null = null;
+  private static lastAnonymizerSeed: string = '';
   private static readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   // Initialize/refresh the student name mapping cache
   static async refreshCache(): Promise<void> {
     console.log('🔄 Refreshing student name translation cache...');
-    
+
+    // Get anonymizer state
+    const { anonymizerEnabled, anonymizerSeed } = useStore.getState();
+
     try {
       const students = await db.students.toArray();
-      
+
       this.studentNameMap.clear();
       this.nameToWasabiMap.clear();
       this.wasabiToNameMap.clear();
-      
+      this.anonymizedNameToWasabiMap.clear();
+
       students.forEach(student => {
         const fullName = `${student.firstName} ${student.lastName}`.trim();
         const firstName = student.firstName?.trim();
@@ -43,14 +50,14 @@ export class StudentNameTranslationService {
           firstName: firstName || '',
           lastName: lastName || ''
         };
-        
+
         // Store in main map
         this.studentNameMap.set(student.id, studentMap);
-        
+
         // Create multiple name mappings for flexible matching
         this.nameToWasabiMap.set(fullNameLower, student.id);
         this.wasabiToNameMap.set(student.id, fullName);
-        
+
         // Also map by first name + last initial (e.g., "John D")
         if (firstNameLower && lastNameLower) {
           const firstNameLastInitial = `${firstNameLower} ${lastNameLower.charAt(0)}`;
@@ -60,16 +67,32 @@ export class StudentNameTranslationService {
           const lastNameFirstName = `${lastNameLower}, ${firstNameLower}`;
           this.nameToWasabiMap.set(lastNameFirstName, student.id);
         }
-        
+
         // Map by student number as well
         if (student.studentNumber) {
           this.nameToWasabiMap.set(student.studentNumber, student.id);
         }
+
+        // Build anonymized name mappings if anonymizer is enabled
+        if (anonymizerEnabled) {
+          const anonymized = anonymizeStudent(student.id, anonymizerSeed);
+          const anonymizedFullName = `${anonymized.firstName} ${anonymized.lastName}`.toLowerCase();
+          const anonymizedLastFirst = `${anonymized.lastName}, ${anonymized.firstName}`.toLowerCase();
+
+          this.anonymizedNameToWasabiMap.set(anonymizedFullName, student.id);
+          this.anonymizedNameToWasabiMap.set(anonymizedLastFirst, student.id);
+          // Also map the anonymized student ID
+          this.anonymizedNameToWasabiMap.set(anonymized.studentId.toLowerCase(), student.id);
+        }
       });
-      
+
       this.lastCacheUpdate = new Date();
+      this.lastAnonymizerSeed = anonymizerSeed;
       console.log(`✅ Cached ${students.length} student name mappings`);
-      
+      if (anonymizerEnabled) {
+        console.log(`🎭 Also built ${this.anonymizedNameToWasabiMap.size} anonymized name mappings`);
+      }
+
     } catch (error) {
       console.error('❌ Error refreshing student name cache:', error);
       throw error;
@@ -78,8 +101,14 @@ export class StudentNameTranslationService {
   
   // Ensure cache is fresh
   private static async ensureFreshCache(): Promise<void> {
-    if (!this.lastCacheUpdate || 
-        Date.now() - this.lastCacheUpdate.getTime() > this.CACHE_DURATION) {
+    const { anonymizerSeed, anonymizerEnabled } = useStore.getState();
+
+    // Refresh if cache is stale, or if anonymizer seed changed
+    const needsRefresh = !this.lastCacheUpdate ||
+        Date.now() - this.lastCacheUpdate.getTime() > this.CACHE_DURATION ||
+        (anonymizerEnabled && this.lastAnonymizerSeed !== anonymizerSeed);
+
+    if (needsRefresh) {
       await this.refreshCache();
     }
   }
@@ -87,16 +116,48 @@ export class StudentNameTranslationService {
   // Find student by name (fuzzy matching)
   static async findStudentByName(nameQuery: string): Promise<StudentNameMap | null> {
     await this.ensureFreshCache();
-    
+
     const queryLower = nameQuery.toLowerCase().trim();
-    
-    // Direct match first
+
+    // Check anonymizer state
+    const { anonymizerEnabled } = useStore.getState();
+
+    // If anonymizer is enabled, check anonymized names first
+    if (anonymizerEnabled) {
+      const anonymizedMatch = this.anonymizedNameToWasabiMap.get(queryLower);
+      if (anonymizedMatch) {
+        console.log('🎭 Found anonymized name match:', queryLower, '→', anonymizedMatch);
+        return this.studentNameMap.get(anonymizedMatch) || null;
+      }
+    }
+
+    // Direct match on real names
     const directMatch = this.nameToWasabiMap.get(queryLower);
     if (directMatch) {
       return this.studentNameMap.get(directMatch) || null;
     }
-    
-    // Fuzzy matching
+
+    // If anonymizer is enabled, also do fuzzy matching on anonymized names
+    if (anonymizerEnabled) {
+      const anonymizedCandidates: Array<{ wasabiId: string; score: number }> = [];
+      this.anonymizedNameToWasabiMap.forEach((wasabiId, anonymizedName) => {
+        const score = this.calculateNameSimilarity(queryLower, anonymizedName);
+        if (score > 0.6) {
+          anonymizedCandidates.push({ wasabiId, score });
+        }
+      });
+
+      if (anonymizedCandidates.length > 0) {
+        anonymizedCandidates.sort((a, b) => b.score - a.score);
+        const bestMatch = this.studentNameMap.get(anonymizedCandidates[0].wasabiId);
+        if (bestMatch) {
+          console.log('🎭 Found fuzzy anonymized name match:', queryLower, '→', bestMatch.wasabiId);
+          return bestMatch;
+        }
+      }
+    }
+
+    // Fuzzy matching on real names
     const candidates: Array<{ student: StudentNameMap; score: number }> = [];
     
     this.studentNameMap.forEach(student => {
@@ -247,9 +308,23 @@ export class StudentNameTranslationService {
         if (i === 3) { // Pattern 4: [Student Name] actual name - special handling
           const actualName = match[1];
           console.log('🔍 Found broken [Student Name] format with actual name:', actualName);
-          // Just replace with the actual name
-          translatedResponse = translatedResponse.replace(match[0], actualName);
-          console.log('✅ Fixed broken format:', match[0], '→', actualName);
+
+          // If anonymizer is enabled, try to find and anonymize this student
+          if (anonymizerEnabled) {
+            const student = await this.findStudentByName(actualName);
+            if (student) {
+              const anonymized = anonymizeStudent(student.wasabiId, anonymizerSeed);
+              const anonymizedName = `${anonymized.firstName} ${anonymized.lastName}`;
+              translatedResponse = translatedResponse.replace(match[0], anonymizedName);
+              console.log('🎭 Anonymizing broken format:', match[0], '→', anonymizedName);
+            } else {
+              translatedResponse = translatedResponse.replace(match[0], actualName);
+              console.log('✅ Fixed broken format (no student match):', match[0], '→', actualName);
+            }
+          } else {
+            translatedResponse = translatedResponse.replace(match[0], actualName);
+            console.log('✅ Fixed broken format:', match[0], '→', actualName);
+          }
         } else if (i === 5) { // Pattern 6: Common phrases - extract the WASABI ID
           const wasabiId = match[1];
           console.log('🔍 Found WASABI ID in phrase:', wasabiId);
