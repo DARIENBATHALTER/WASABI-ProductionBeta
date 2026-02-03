@@ -22,6 +22,7 @@ import SOBAObservationForm from './pages/SOBAObservationForm';
 import SOBAObservationDetail from './pages/SOBAObservationDetail';
 import SOBAAnalytics from './pages/SOBAAnalytics';
 import ExamAnalytics from './pages/ExamAnalytics';
+import InterventionsPage from './pages/InterventionsPage';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -197,6 +198,13 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <SOBAAnalytics />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/interventions" element={
+            <ProtectedRoute>
+              <Layout>
+                <InterventionsPage />
               </Layout>
             </ProtectedRoute>
           } />

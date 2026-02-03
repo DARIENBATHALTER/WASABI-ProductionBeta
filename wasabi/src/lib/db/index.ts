@@ -39,6 +39,50 @@ export interface AuditLog {
   ipAddress?: string;
 }
 
+export interface Intervention {
+  id?: number;
+  studentId: string;
+  type: 'tutoring' | 'counseling' | 'parent_conference' | 'behavior_plan' | 'academic_support' | 'mentoring' | 'other';
+  title: string;
+  description: string;
+  startDate: Date;
+  endDate?: Date;
+  frequency: string; // e.g., "Daily", "Weekly", "As needed"
+  staffResponsible: string;
+  status: 'active' | 'completed' | 'paused' | 'discontinued';
+  notes: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  outcomes?: {
+    successful: boolean;
+    summary: string;
+    measuredDate: Date;
+  };
+}
+
+export interface StudentGoal {
+  id?: number;
+  studentId: string;
+  category: 'reading' | 'math' | 'attendance' | 'behavior' | 'social_emotional' | 'other';
+  title: string;
+  description: string;
+  metric: string;
+  baselineValue: number;
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  startDate: Date;
+  targetDate: Date;
+  status: 'not_started' | 'in_progress' | 'achieved' | 'missed' | 'extended';
+  progressNotes: Array<{
+    date: Date;
+    value: number;
+    note: string;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 class WasabiDatabase extends Dexie {
   // Declare tables
   users!: Table<User>;
@@ -53,6 +97,8 @@ class WasabiDatabase extends Dexie {
   matchingReports!: Table<MatchingReport>;
   settings!: Table<Settings>;
   auditLogs!: Table<AuditLog>;
+  interventions!: Table<Intervention>;
+  studentGoals!: Table<StudentGoal>;
 
   constructor() {
     super('wasabi-db');
@@ -180,6 +226,24 @@ class WasabiDatabase extends Dexie {
       matchingReports: '++id, datasetType, uploadDate',
       settings: 'key',
       auditLogs: '++id, timestamp, userId, action, entityType'
+    });
+
+    // Version 10: Add interventions and student goals
+    this.version(10).stores({
+      users: '++id, email, name, role, isActive',
+      students: 'id, studentNumber, flId, firstName, lastName, grade, dateOfBirth',
+      dataSources: 'id, type, uploadDate',
+      attendance: '[studentId+date], studentId, date, matchedBy, matchConfidence',
+      grades: '++id, studentId, course, matchedBy, matchConfidence',
+      discipline: '++id, studentId, incidentDate, infractionCode, matchedBy, matchConfidence',
+      assessments: '++id, studentId, source, testDate, subject, matchedBy, matchConfidence',
+      sobaObservations: 'observationId, homeroom, observationTimestamp',
+      sobaStudentNotes: 'noteId, observationId, studentId, homeroom, noteTimestamp',
+      matchingReports: '++id, datasetType, uploadDate',
+      settings: 'key',
+      auditLogs: '++id, timestamp, userId, action, entityType',
+      interventions: '++id, studentId, type, status, startDate',
+      studentGoals: '++id, studentId, category, status, targetDate'
     });
   }
 }
