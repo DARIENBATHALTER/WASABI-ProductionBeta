@@ -26,18 +26,39 @@ interface OpenAIResponse {
 class OpenAIService {
   private apiKey: string;
   private baseUrl = 'https://api.openai.com/v1';
+  private proxyUrl = 'http://localhost:3001/api/chat'; // Local server proxy
   private model: string;
   private maxTokens: number;
   private temperature: number;
+  private useProxy: boolean = false; // Will be set after checking server availability
 
   constructor() {
-    this.apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    this.apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
     this.model = import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o';
     this.maxTokens = parseInt(import.meta.env.VITE_OPENAI_MAX_TOKENS) || 2000;
     this.temperature = parseFloat(import.meta.env.VITE_OPENAI_TEMPERATURE) || 0.7;
 
-    if (!this.apiKey || this.apiKey === 'your_openai_api_key_here') {
-      console.warn('OpenAI API key not configured. Please set VITE_OPENAI_API_KEY in your .env file.');
+    // Check if server proxy is available
+    this.checkProxyAvailability();
+  }
+
+  private async checkProxyAvailability(): Promise<void> {
+    try {
+      const response = await fetch('http://localhost:3001/api/health', {
+        method: 'GET',
+        signal: AbortSignal.timeout(2000), // 2 second timeout
+      });
+      if (response.ok) {
+        this.useProxy = true;
+        console.log('🔐 Using secure server proxy for OpenAI API');
+      }
+    } catch {
+      // Server not available, will use direct API calls
+      if (!this.apiKey || this.apiKey === 'your_openai_api_key_here') {
+        console.warn('OpenAI API: Server proxy not available and no API key configured.');
+      } else {
+        console.log('📡 Using direct OpenAI API (server proxy not available)');
+      }
     }
   }
 
@@ -733,8 +754,9 @@ Remember: Your mission is to help every student succeed! Use data to identify op
     context?: any,
     onStream?: (chunk: string) => void
   ): Promise<string> {
-    if (!this.apiKey || this.apiKey === 'your_openai_api_key_here') {
-      throw new Error('OpenAI API key not configured. Please set VITE_OPENAI_API_KEY in your .env file.');
+    // Check if we have a way to call OpenAI (either proxy or direct API key)
+    if (!this.useProxy && (!this.apiKey || this.apiKey === 'your_openai_api_key_here')) {
+      throw new Error('OpenAI API not available. Please start the server (npm run server) or configure VITE_OPENAI_API_KEY.');
     }
 
     // Add system prompt if not present
@@ -758,16 +780,25 @@ Remember: Your mission is to help every student succeed! Use data to identify op
       try {
         console.log(`🔄 OpenAI API attempt ${attempt}/${MAX_RETRIES}`);
         
-        const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        // Use proxy if available, otherwise direct API
+        const url = this.useProxy ? this.proxyUrl : `${this.baseUrl}/chat/completions`;
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+
+        // Only add Authorization header for direct API calls
+        if (!this.useProxy) {
+          headers['Authorization'] = `Bearer ${this.apiKey}`;
+        }
+
+        const response = await fetch(url, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({
             model: this.model,
             messages: finalMessages,
-            max_tokens: this.maxTokens,
+            maxTokens: this.maxTokens, // Use camelCase for proxy
+            max_tokens: this.maxTokens, // Keep snake_case for direct API
             temperature: this.temperature,
             stream: !!onStream,
           }),

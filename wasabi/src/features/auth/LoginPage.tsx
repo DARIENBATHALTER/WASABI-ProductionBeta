@@ -5,6 +5,26 @@ import { useNavigate } from 'react-router-dom';
 import { userService } from '../../services/userService';
 import { databaseBackupService } from '../../services/databaseBackupService';
 
+// Rate limiting constants
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+function getLoginAttempts(): { count: number; lockoutUntil: number | null } {
+  const stored = sessionStorage.getItem('loginAttempts');
+  if (stored) {
+    return JSON.parse(stored);
+  }
+  return { count: 0, lockoutUntil: null };
+}
+
+function setLoginAttempts(count: number, lockoutUntil: number | null) {
+  sessionStorage.setItem('loginAttempts', JSON.stringify({ count, lockoutUntil }));
+}
+
+function clearLoginAttempts() {
+  sessionStorage.removeItem('loginAttempts');
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,8 +37,9 @@ export default function LoginPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [importProgress, setImportProgress] = useState<string[]>([]);
   const [importStatus, setImportStatus] = useState<'idle' | 'importing' | 'success' | 'error'>('idle');
+  const [lockoutRemaining, setLockoutRemaining] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const { setCurrentUser, currentUser, isSessionValid } = useStore();
   const navigate = useNavigate();
 
@@ -29,6 +50,24 @@ export default function LoginPage() {
       navigate('/');
     }
   }, [currentUser, isSessionValid, navigate]);
+
+  // Check and update lockout status
+  useEffect(() => {
+    const checkLockout = () => {
+      const { lockoutUntil } = getLoginAttempts();
+      if (lockoutUntil && Date.now() < lockoutUntil) {
+        setLockoutRemaining(Math.ceil((lockoutUntil - Date.now()) / 1000));
+      } else if (lockoutUntil) {
+        // Lockout expired, clear it
+        clearLoginAttempts();
+        setLockoutRemaining(0);
+      }
+    };
+
+    checkLockout();
+    const interval = setInterval(checkLockout, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,36 +88,35 @@ export default function LoginPage() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Check for lockout
+    const { lockoutUntil } = getLoginAttempts();
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const minutes = Math.ceil((lockoutUntil - Date.now()) / 60000);
+      setError(`Too many failed attempts. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       // Start loading sequence
       setLoginPhase('logging-in');
-      
+
       // "Logging in..." phase
       await new Promise(resolve => setTimeout(resolve, 1200));
-      
+
       setLoginPhase('connecting');
-      
+
       // "Connecting to WASABI..." phase
       await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Check for hardcoded admin credentials first
-      if (email === 'admin@wasabi.com' && password === '1176') {
-        setCurrentUser({
-          id: '999',
-          email: 'admin@wasabi.com',
-          name: 'Administrator',
-          role: 'Administrator'
-        });
-        navigate('/');
-        return;
-      }
-      
-      // Otherwise check database
+
+      // Validate against database (passwords are now hashed)
       const user = await userService.validateLogin(email, password);
-      
+
       if (user) {
+        // Clear login attempts on success
+        clearLoginAttempts();
         setCurrentUser({
           id: user.id!.toString(),
           email: user.email,
@@ -87,7 +125,20 @@ export default function LoginPage() {
         });
         navigate('/');
       } else {
-        setError('Wrong email or password. Try again or click Forgot password to reset it.');
+        // Track failed attempt
+        const { count } = getLoginAttempts();
+        const newCount = count + 1;
+
+        if (newCount >= MAX_LOGIN_ATTEMPTS) {
+          // Lock out the user
+          const lockoutUntil = Date.now() + LOCKOUT_DURATION_MS;
+          setLoginAttempts(newCount, lockoutUntil);
+          setError(`Too many failed attempts. Account locked for 15 minutes.`);
+        } else {
+          setLoginAttempts(newCount, null);
+          const remaining = MAX_LOGIN_ATTEMPTS - newCount;
+          setError(`Wrong email or password. ${remaining} attempt${remaining > 1 ? 's' : ''} remaining.`);
+        }
         setLoginPhase('form');
       }
     } catch (err) {

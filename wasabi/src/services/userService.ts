@@ -1,4 +1,5 @@
 import { db, type User } from '../lib/db';
+import { hashPassword, verifyPassword, isHashedPassword } from './passwordService';
 
 export class UserService {
   async getAllUsers(): Promise<User[]> {
@@ -14,17 +15,21 @@ export class UserService {
   }
 
   async createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<number> {
-    const user: Omit<User, 'id'> = {
-      ...userData,
-      createdAt: new Date()
-    };
-    
     // Check if email already exists
     const existingUser = await this.getUserByEmail(userData.email);
     if (existingUser) {
       throw new Error('User with this email already exists');
     }
-    
+
+    // Hash the password before storing
+    const hashedPassword = await hashPassword(userData.password);
+
+    const user: Omit<User, 'id'> = {
+      ...userData,
+      password: hashedPassword,
+      createdAt: new Date()
+    };
+
     return await db.users.add(user);
   }
 
@@ -40,6 +45,11 @@ export class UserService {
       if (emailExists) {
         throw new Error('User with this email already exists');
       }
+    }
+
+    // If password is being updated, hash it (unless it's already hashed)
+    if (userData.password && !isHashedPassword(userData.password)) {
+      userData.password = await hashPassword(userData.password);
     }
 
     await db.users.update(id, userData);
@@ -61,14 +71,30 @@ export class UserService {
 
   async validateLogin(email: string, password: string): Promise<User | null> {
     const user = await this.getUserByEmail(email);
-    
+
     if (!user || !user.isActive) {
       return null;
     }
 
-    // In a real app, passwords would be hashed
-    // For now, we're doing plain text comparison
-    if (user.password === password) {
+    let isValid = false;
+
+    // Check if password is hashed (bcrypt format)
+    if (isHashedPassword(user.password)) {
+      // Verify against hashed password
+      isValid = await verifyPassword(password, user.password);
+    } else {
+      // Legacy plain-text password - verify and migrate
+      isValid = user.password === password;
+
+      if (isValid) {
+        // Migrate to hashed password on successful login
+        const hashedPassword = await hashPassword(password);
+        await db.users.update(user.id!, { password: hashedPassword });
+        console.log(`🔐 Migrated password to bcrypt hash for user: ${email}`);
+      }
+    }
+
+    if (isValid) {
       // Update last login time
       await this.updateUser(user.id!, { lastLogin: new Date() });
       return user;
