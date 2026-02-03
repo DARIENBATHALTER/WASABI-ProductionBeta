@@ -6,6 +6,7 @@ import ToastContainer from './Toast';
 import NoriBubble from './NoriBubble';
 import StudentProfileCards from '../../features/students/StudentProfileCards';
 import { useStore } from '../../store';
+import { useGlobalShortcuts } from '../../hooks/useKeyboardNavigation';
 import type { StudentSearchResult } from '../../hooks/useStudentSearch';
 
 interface LayoutProps {
@@ -16,6 +17,9 @@ export default function Layout({ children }: LayoutProps) {
   const { selectedStudents, setSelectedStudents, sidebarOpen, toggleSidebar, theme, setNoriMinimized } = useStore();
   const [showProfiles, setShowProfiles] = useState(false);
   const location = useLocation();
+
+  // Enable global keyboard shortcuts (Cmd/Ctrl+K for search, / for quick search)
+  useGlobalShortcuts();
   
   const handleViewProfiles = () => {
     if (selectedStudents.length > 0) {
