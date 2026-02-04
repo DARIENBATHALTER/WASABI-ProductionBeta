@@ -44,4 +44,21 @@
   .btn-primary {
     @apply bg-wasabi-green hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors;
   }
+
+  /* Mobile-friendly touch targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Responsive text utilities */
+  .text-responsive {
+    @apply text-sm sm:text-base;
+  }
+
+  .heading-responsive {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+  }
 }
+
+/* Import responsive styles */
+@import './shared/styles/responsive.css';

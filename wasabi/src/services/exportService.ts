@@ -1,18 +1,42 @@
+/**
+ * WASABI Export Service
+ *
+ * Provides data export functionality for CSV and Excel formats.
+ * Supports exporting students, attendance, assessments, interventions,
+ * communications, and complete student portfolios.
+ *
+ * @example
+ * // Export students to Excel
+ * await exportService.exportStudents('all', { format: 'xlsx' });
+ *
+ * // Export specific student's complete portfolio
+ * await exportService.exportStudentPortfolio('student-123');
+ */
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { db } from '../lib/db';
 import type { Student } from '../shared/types';
 
+/** Supported export file formats */
 export type ExportFormat = 'csv' | 'xlsx';
 
+/** Options for configuring data exports */
 interface ExportOptions {
+  /** Output format: 'csv' or 'xlsx' */
   format: ExportFormat;
+  /** Filename without extension */
   filename: string;
+  /** Whether to include column headers (default: true) */
   includeHeaders?: boolean;
 }
 
 class ExportService {
-  // Generic data export
+  /**
+   * Export any data array to CSV or Excel
+   * @param data - Array of objects to export
+   * @param columns - Column definitions with key and display label
+   * @param options - Export options (format, filename, headers)
+   */
   exportData<T extends Record<string, any>>(
     data: T[],
     columns: { key: keyof T; label: string }[],

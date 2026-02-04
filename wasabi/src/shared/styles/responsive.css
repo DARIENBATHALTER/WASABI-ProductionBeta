@@ -1,0 +1,155 @@
+/* WASABI Responsive Styles */
+
+/* Mobile-first breakpoints */
+/* sm: 640px, md: 768px, lg: 1024px, xl: 1280px */
+
+/* Hide sidebar on mobile by default */
+@media (max-width: 1023px) {
+  .sidebar-mobile-hidden {
+    transform: translateX(-100%);
+  }
+}
+
+/* Adjust main content padding on mobile */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 1rem;
+  }
+
+  /* Stack cards vertically on mobile */
+  .card-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Full-width buttons on mobile */
+  .btn-mobile-full {
+    width: 100%;
+  }
+
+  /* Smaller headings on mobile */
+  .heading-responsive {
+    font-size: 1.5rem;
+  }
+
+  /* Hide non-essential columns on mobile tables */
+  .table-hide-mobile {
+    display: none;
+  }
+
+  /* Stack form fields vertically */
+  .form-row-mobile {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .card-grid-tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Touch-friendly targets (minimum 44px) */
+@media (pointer: coarse) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Larger tap targets for buttons */
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+  }
+
+  /* More spacing between interactive elements */
+  .touch-spacing > * + * {
+    margin-top: 0.75rem;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .border-subtle {
+    border-color: currentColor;
+  }
+
+  .text-muted {
+    opacity: 1;
+  }
+}
+
+/* Print styles */
+@media print {
+  /* Hide navigation and interactive elements */
+  nav,
+  .sidebar,
+  .nori-bubble,
+  .bulk-actions-bar,
+  button:not(.print-visible) {
+    display: none !important;
+  }
+
+  /* Ensure content uses full width */
+  .main-content {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Force white background for printing */
+  * {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Page breaks */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .avoid-page-break {
+    page-break-inside: avoid;
+  }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+  .modal-landscape {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .header-landscape {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
